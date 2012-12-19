@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -11,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Scanner;
+import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,35 +29,48 @@ import org.mira.lucene.analysis.*;
 
 
 
-public class Spider implements Runnable {
+public class SearchEngine implements Runnable,Callable<ArrayList<String>> {
 
  private HashMap<String, ArrayList<String>> disallowListCache = new HashMap<String, ArrayList<String>>();
- ArrayList<String> errorList = new ArrayList<String>();// ´íÎóĞÅÏ¢
- ArrayList<String> result = new ArrayList<String>(); // ËÑË÷µ½µÄ½á¹û
- String startUrl;// ¿ªÊ¼ËÑË÷µÄÆğµã
- int maxUrl;// ×î´ó´¦ÀíµÄurlÊı
+ ArrayList<String> errorList = new ArrayList<String>();// é”™è¯¯ä¿¡æ¯
+ ArrayList<String> result = new ArrayList<String>(); // æœç´¢åˆ°çš„ç»“æœ
+ String startUrl;// å¼€å§‹æœç´¢çš„èµ·ç‚¹
+ int maxUrl;// æœ€å¤§å¤„ç†çš„urlæ•°
  static int countUrl=0;
- String searchString;// ÒªËÑË÷µÄ×Ö·û´®(Ó¢ÎÄ)
- boolean caseSensitive = false;// ÊÇ·ñÇø·Ö´óĞ¡Ğ´
- boolean limitHost = false;// ÊÇ·ñÔÚÏŞÖÆµÄÖ÷»úÄÚËÑË÷
+// String searchString;// è¦æœç´¢çš„å­—ç¬¦ä¸²(è‹±æ–‡)
+ boolean caseSensitive = false;// æ˜¯å¦åŒºåˆ†å¤§å°å†™
+ boolean limitHost = false;// æ˜¯å¦åœ¨é™åˆ¶çš„ä¸»æœºå†…æœç´¢
+ 
+ 
 
- public Spider ( String startUrl, int maxUrl, String searchString) {
+ public SearchEngine ( String startUrl, int maxUrl) {
   this.startUrl = startUrl;
   this.maxUrl = maxUrl;
-  this.searchString = searchString;
+  //this.searchString = searchString;
+ }
+ 
+ public ArrayList<String> call() throws Exception {
+	 
+	 ArrayList<String> temp= crawl(startUrl, maxUrl, limitHost, caseSensitive);
+	 
+	 System.out.println(temp);
+	return temp;
  }
 
  public ArrayList<String> getResult() {
   return result;
  }
 
- public void run() {// Æô¶¯ËÑË÷Ïß³Ì
-  crawl(startUrl, maxUrl, searchString, limitHost, caseSensitive);
+ public void run() {// å¯åŠ¨æœç´¢çº¿ç¨‹
+  crawl(startUrl, maxUrl, limitHost, caseSensitive);
+  
+  
+ 
  }
 
- // ¼ì²âURL¸ñÊ½
+ // æ£€æµ‹URLæ ¼å¼
  private URL verifyUrl(String url) {
-  // Ö»´¦ÀíHTTP URLs.
+  // åªå¤„ç†HTTP URLs.
   if (!url.toLowerCase().startsWith("http://"))
    return null;
   URL verifiedUrl = null;
@@ -67,14 +82,14 @@ public class Spider implements Runnable {
   return verifiedUrl;
  }
 
- // ¼ì²ârobotÊÇ·ñÔÊĞí·ÃÎÊ¸ø³öµÄURL.
+ // æ£€æµ‹robotæ˜¯å¦å…è®¸è®¿é—®ç»™å‡ºçš„URL.
  private boolean isRobotAllowed(URL urlToCheck) {
-  String host = urlToCheck.getHost().toLowerCase();// »ñÈ¡¸ø³öURLµÄÖ÷»ú
+  String host = urlToCheck.getHost().toLowerCase();// è·å–ç»™å‡ºURLçš„ä¸»æœº
 
-  // »ñÈ¡Ö÷»ú²»ÔÊĞíËÑË÷µÄURL»º´æ
+  // è·å–ä¸»æœºä¸å…è®¸æœç´¢çš„URLç¼“å­˜
   ArrayList<String> disallowList = disallowListCache.get(host);
 
-  // Èç¹û»¹Ã»ÓĞ»º´æ,ÏÂÔØ²¢»º´æ¡£
+  // å¦‚æœè¿˜æ²¡æœ‰ç¼“å­˜,ä¸‹è½½å¹¶ç¼“å­˜ã€‚
   if (disallowList == null) {
    disallowList = new ArrayList<String>();
    try {
@@ -82,18 +97,18 @@ public class Spider implements Runnable {
     BufferedReader reader = new BufferedReader(
       new InputStreamReader(robotsFileUrl.openStream()));
 
-    // ¶ÁrobotÎÄ¼ş£¬´´½¨²»ÔÊĞí·ÃÎÊµÄÂ·¾¶ÁĞ±í¡£
+    // è¯»robotæ–‡ä»¶ï¼Œåˆ›å»ºä¸å…è®¸è®¿é—®çš„è·¯å¾„åˆ—è¡¨ã€‚
     String line;
     while ((line = reader.readLine()) != null) {
-     if (line.indexOf("Disallow:") == 0) {// ÊÇ·ñ°üº¬"Disallow:"
+     if (line.indexOf("Disallow:") == 0) {// æ˜¯å¦åŒ…å«"Disallow:"
       String disallowPath = line.substring("Disallow:"
-        .length());// »ñÈ¡²»ÔÊĞí·ÃÎÊÂ·¾¶
+        .length());// è·å–ä¸å…è®¸è®¿é—®è·¯å¾„
 
-      // ¼ì²éÊÇ·ñÓĞ×¢ÊÍ¡£
+      // æ£€æŸ¥æ˜¯å¦æœ‰æ³¨é‡Šã€‚
       int commentIndex = disallowPath.indexOf("#");
       if (commentIndex != -1) {
        disallowPath = disallowPath.substring(0,
-         commentIndex);// È¥µô×¢ÊÍ
+         commentIndex);// å»æ‰æ³¨é‡Š
       }
 
       disallowPath = disallowPath.trim();
@@ -101,10 +116,10 @@ public class Spider implements Runnable {
      }
     }
 
-    // »º´æ´ËÖ÷»ú²»ÔÊĞí·ÃÎÊµÄÂ·¾¶¡£
+    // ç¼“å­˜æ­¤ä¸»æœºä¸å…è®¸è®¿é—®çš„è·¯å¾„ã€‚
     disallowListCache.put(host, disallowList);
    } catch (Exception e) {
-    return true; // webÕ¾µã¸ùÄ¿Â¼ÏÂÃ»ÓĞrobots.txtÎÄ¼ş,·µ»ØÕæ
+    return true; // webç«™ç‚¹æ ¹ç›®å½•ä¸‹æ²¡æœ‰robots.txtæ–‡ä»¶,è¿”å›çœŸ
    }
   }
 
@@ -122,15 +137,15 @@ public class Spider implements Runnable {
   public String getText(String url)throws ParserException{  
      StringBean sb = new StringBean();  
        
-     //ÉèÖÃ²»ĞèÒªµÃµ½Ò³ÃæËù°üº¬µÄÁ´½ÓĞÅÏ¢  
+     //è®¾ç½®ä¸éœ€è¦å¾—åˆ°é¡µé¢æ‰€åŒ…å«çš„é“¾æ¥ä¿¡æ¯  
      sb.setLinks(false);  
-     //ÉèÖÃ½«²»¼ä¶Ï¿Õ¸ñÓÉÕı¹æ¿Õ¸ñËùÌæ´ú  
+     //è®¾ç½®å°†ä¸é—´æ–­ç©ºæ ¼ç”±æ­£è§„ç©ºæ ¼æ‰€æ›¿ä»£  
      sb.setReplaceNonBreakingSpaces(true);  
-     //ÉèÖÃ½«Ò»ĞòÁĞ¿Õ¸ñÓÉÒ»¸öµ¥Ò»¿Õ¸ñËù´úÌæ  
+     //è®¾ç½®å°†ä¸€åºåˆ—ç©ºæ ¼ç”±ä¸€ä¸ªå•ä¸€ç©ºæ ¼æ‰€ä»£æ›¿  
      sb.setCollapse(true);  
-     //´«ÈëÒª½âÎöµÄURL  
+     //ä¼ å…¥è¦è§£æçš„URL  
      sb.setURL(url);  
-     //·µ»Ø½âÎöºóµÄÍøÒ³´¿ÎÄ±¾ĞÅÏ¢  
+     //è¿”å›è§£æåçš„ç½‘é¡µçº¯æ–‡æœ¬ä¿¡æ¯  
      return sb.getStrings();  
  }  
  
@@ -141,7 +156,7 @@ public class Spider implements Runnable {
      
 	 StringReader sr=new StringReader(text);
 	
-	 //µ÷ÓÃ IK Analyzer½øĞĞ·Ö´Ê
+	 //è°ƒç”¨ IK Analyzerè¿›è¡Œåˆ†è¯
 	 IK_CAnalyzer i=new IK_CAnalyzer();
 	 
 	 TokenStream ts=i.tokenStream(" ",sr);
@@ -152,7 +167,7 @@ public class Spider implements Runnable {
 		 segText=segText+t.termText()+" ";
 		
 	 }
-	 //·µ»Ø½âÎöºóµÄ·Ö´ÊĞÅÏ¢
+	 //è¿”å›è§£æåçš„åˆ†è¯ä¿¡æ¯
      return segText;
   }
  
@@ -175,13 +190,19 @@ public class Spider implements Runnable {
    String buf=pageBuffer.toString();
    
 
-	byte[] bytes=segmentation(getText(pageUrl.toString())).getBytes();
+//	byte[] bytes=segmentation(getText(pageUrl.toString())).getBytes();
+   byte[] bytes=getText(pageUrl.toString()).getBytes();
    
  //  File file=new File("web"+countUrl+".txt");
    OutputStream os;
    
    try {
-	   os = new FileOutputStream("web"+countUrl+".txt");
+	   String save_path="SearchResult";
+	   File file=new File(save_path);
+	   if(!file.exists())
+		   file.mkdirs();
+	   
+	   os = new FileOutputStream(save_path+"/web"+countUrl+".txt");
 	   os.write(bytes);
 	   os.close();
 	   } catch (FileNotFoundException e) {
@@ -203,7 +224,7 @@ public class Spider implements Runnable {
 
 
 
-// ´ÓURLÖĞÈ¥µô"www"
+// ä»URLä¸­å»æ‰"www"
  private String removeWwwFromUrl(String url) {
   int index = url.indexOf("://www.");
   if (index != -1) {
@@ -213,10 +234,10 @@ public class Spider implements Runnable {
   return (url);
  }
 
- // ½âÎöÒ³Ãæ²¢ÕÒ³öÁ´½Ó
+ // è§£æé¡µé¢å¹¶æ‰¾å‡ºé“¾æ¥
  private ArrayList<String> retrieveLinks(URL pageUrl, String pageContents,
    HashSet crawledList, boolean limitHost) {
-  // ÓÃÕıÔò±í´ïÊ½±àÒëÁ´½ÓµÄÆ¥ÅäÄ£Ê½¡£
+  // ç”¨æ­£åˆ™è¡¨è¾¾å¼ç¼–è¯‘é“¾æ¥çš„åŒ¹é…æ¨¡å¼ã€‚
   Pattern p = Pattern.compile("<a\\s+href\\s*=\\s*\"?(.*?)[\"|>]",
     Pattern.CASE_INSENSITIVE);
   Matcher m = p.matcher(pageContents);
@@ -229,7 +250,7 @@ public class Spider implements Runnable {
     continue;
    }
 
-   // Ìø¹ıÁ´µ½±¾Ò³ÃæÄÚÁ´½Ó¡£
+   // è·³è¿‡é“¾åˆ°æœ¬é¡µé¢å†…é“¾æ¥ã€‚
    if (link.charAt(0) == '#') {
     continue;
    }
@@ -243,12 +264,12 @@ public class Spider implements Runnable {
    }
 
    if (link.indexOf("://") == -1) {
-    if (link.charAt(0) == '/') {// ´¦Àí¾ø¶ÔµØ
+    if (link.charAt(0) == '/') {// å¤„ç†ç»å¯¹åœ°
      link = "http://" + pageUrl.getHost() + ":"
        + pageUrl.getPort() + link;
     } else {
      String file = pageUrl.getFile();
-     if (file.indexOf('/') == -1) {// ´¦ÀíÏà¶ÔµØÖ·
+     if (file.indexOf('/') == -1) {// å¤„ç†ç›¸å¯¹åœ°å€
       link = "http://" + pageUrl.getHost() + ":"
         + pageUrl.getPort() + "/" + link;
      } else {
@@ -272,14 +293,14 @@ public class Spider implements Runnable {
     continue;
    }
 
-   /* Èç¹ûÏŞ¶¨Ö÷»ú£¬ÅÅ³ıÄÇĞ©²»ºÏÌõ¼şµÄURL */
+   /* å¦‚æœé™å®šä¸»æœºï¼Œæ’é™¤é‚£äº›ä¸åˆæ¡ä»¶çš„URL */
    if (limitHost
      && !pageUrl.getHost().toLowerCase().equals(
        verifiedLink.getHost().toLowerCase())) {
     continue;
    }
 
-   // Ìø¹ıÄÇĞ©ÒÑ¾­´¦ÀíµÄÁ´½Ó.
+   // è·³è¿‡é‚£äº›å·²ç»å¤„ç†çš„é“¾æ¥.
    if (crawledList.contains(link)) {
     continue;
    }
@@ -290,12 +311,12 @@ public class Spider implements Runnable {
   return (linkList);
  }
 
- // ËÑË÷ÏÂÔØWebÒ³ÃæµÄÄÚÈİ£¬ÅĞ¶ÏÔÚ¸ÃÒ³ÃæÄÚÓĞÃ»ÓĞÖ¸¶¨µÄËÑË÷×Ö·û´®
+ // æœç´¢ä¸‹è½½Webé¡µé¢çš„å†…å®¹ï¼Œåˆ¤æ–­åœ¨è¯¥é¡µé¢å†…æœ‰æ²¡æœ‰æŒ‡å®šçš„æœç´¢å­—ç¬¦ä¸²
 
  private boolean searchStringMatches(String pageContents,
    String searchString, boolean caseSensitive) {
   String searchContents = pageContents;
-  if (!caseSensitive) {// Èç¹û²»Çø·Ö´óĞ¡Ğ´
+  if (!caseSensitive) {// å¦‚æœä¸åŒºåˆ†å¤§å°å†™
    searchContents = pageContents.toLowerCase();
   }
 
@@ -316,29 +337,28 @@ public class Spider implements Runnable {
   return true;
  }
 
- // Ö´ĞĞÊµ¼ÊµÄËÑË÷²Ù×÷
+ // æ‰§è¡Œå®é™…çš„æœç´¢æ“ä½œ
  public ArrayList<String> crawl(String startUrl, int maxUrls,
-   String searchString, boolean limithost, boolean caseSensitive) {
+    boolean limithost, boolean caseSensitive) {
 
   HashSet<String> crawledList = new HashSet<String>();
   LinkedHashSet<String> toCrawlList = new LinkedHashSet<String>();
+  ArrayList<String> resultList=new ArrayList<String>();
 
   if (maxUrls < 1) {
    errorList.add("Invalid Max URLs value.");
    System.out.println("Invalid Max URLs value.");
   }
+  
 
-  if (searchString.length() < 1) {
-   errorList.add("Missing Search String.");
-   System.out.println("Missing search String");
-  }
+
 
   if (errorList.size() > 0) {
    System.out.println("err!!!");
    return errorList;
   }
 
-  // ´Ó¿ªÊ¼URLÖĞÒÆ³öwww
+  // ä»å¼€å§‹URLä¸­ç§»å‡ºwww
   startUrl = removeWwwFromUrl(startUrl);
 
   toCrawlList.add(startUrl);
@@ -364,40 +384,42 @@ public class Spider implements Runnable {
     continue;
    }
 
-   // Ôö¼ÓÒÑ´¦ÀíµÄURLµ½crawledList
+   // å¢åŠ å·²å¤„ç†çš„URLåˆ°crawledList
    crawledList.add(url);
+   resultList.add(url);
    String pageContents = downloadPage(verifiedUrl);
    
    
   
 
    if (pageContents != null && pageContents.length() > 0) {
-    // ´ÓÒ³ÃæÖĞ»ñÈ¡ÓĞĞ§µÄÁ´½Ó
-    ArrayList<String> links = retrieveLinks(verifiedUrl,
+    // ä»é¡µé¢ä¸­è·å–æœ‰æ•ˆçš„é“¾æ¥
+	   ArrayList<String> links = retrieveLinks(verifiedUrl,
       pageContents, crawledList, limitHost);
 
     toCrawlList.addAll(links);
+    
 
-    if (searchStringMatches(pageContents, searchString,
-      caseSensitive)) {
-     result.add(url);
-     System.out.println(url);
-    }
+   
+    
    }
-
+ //  System.out.println(url);
   }
-  return result;
+  
+  
+  return resultList;
  }
  
+/*
 
 
-
- // Ö÷º¯Êı
+ // ä¸»å‡½æ•°
  public static void main(String[] args) { 
 	 
 	 new Thread(new Runnable() { 
 		 public void run() { 
 		 while(true) { 
+			 
 			 
 			 Scanner in =new Scanner(System.in);
 			 System.out.println("Please input the url you want to search...");
@@ -410,8 +432,8 @@ public class Spider implements Runnable {
 			 System.out.println("Please input the word you want to search...");
 			 String inputWORD=in.next();
 			  
-			//Spider crawler =new Spider("http://www.hdu.edu.cn/",20,"º¼Öİ");
-			 Spider crawler = new Spider(inputURL, 20,inputWORD);
+			Spider crawler =new Spider("http://www.hdu.edu.cn/",20,"æ­å·");
+			 SearchEngine crawler = new SearchEngine(inputURL, 20,inputWORD);
 			 Thread search = new Thread(crawler);
 			  
 			 System.out.println("Start searching...");
@@ -439,6 +461,7 @@ public class Spider implements Runnable {
 		 } 
 		 }).start(); 
  	}
+ 	*/
 }
 
 

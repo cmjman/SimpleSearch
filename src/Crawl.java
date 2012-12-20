@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
@@ -18,6 +19,10 @@ import java.util.regex.Pattern;
 
 import org.apache.lucene.analysis.Token;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
 
 import org.htmlparser.beans.StringBean;
 
@@ -29,21 +34,26 @@ import org.mira.lucene.analysis.*;
 
 
 
-public class SearchEngine implements Runnable,Callable<ArrayList<String>> {
+public class Crawl implements Runnable,Callable<ArrayList<String>> {
 
  private HashMap<String, ArrayList<String>> disallowListCache = new HashMap<String, ArrayList<String>>();
  ArrayList<String> errorList = new ArrayList<String>();// 错误信息
  ArrayList<String> result = new ArrayList<String>(); // 搜索到的结果
  String startUrl;// 开始搜索的起点
  int maxUrl;// 最大处理的url数
- static int countUrl=0;
+ static int countUrl=1;
 // String searchString;// 要搜索的字符串(英文)
  boolean caseSensitive = false;// 是否区分大小写
  boolean limitHost = false;// 是否在限制的主机内搜索
  
+// private String index_path="/data/index";
+ private String data_path="/data/data";
+ 
+ public static List<String> UrlList;
+ 
  
 
- public SearchEngine ( String startUrl, int maxUrl) {
+ public Crawl ( String startUrl, int maxUrl) {
   this.startUrl = startUrl;
   this.maxUrl = maxUrl;
   //this.searchString = searchString;
@@ -134,20 +144,7 @@ public class SearchEngine implements Runnable,Callable<ArrayList<String>> {
   return true;
  }
  
-  public String getText(String url)throws ParserException{  
-     StringBean sb = new StringBean();  
-       
-     //设置不需要得到页面所包含的链接信息  
-     sb.setLinks(false);  
-     //设置将不间断空格由正规空格所替代  
-     sb.setReplaceNonBreakingSpaces(true);  
-     //设置将一序列空格由一个单一空格所代替  
-     sb.setCollapse(true);  
-     //传入要解析的URL  
-     sb.setURL(url);  
-     //返回解析后的网页纯文本信息  
-     return sb.getStrings();  
- }  
+ 
  
  
  public String segmentation(String text) throws IOException {
@@ -169,7 +166,10 @@ public class SearchEngine implements Runnable,Callable<ArrayList<String>> {
 	 }
 	 //返回解析后的分词信息
      return segText;
-  }
+  
+ 
+ 
+ }  
  
  
 
@@ -191,18 +191,27 @@ public class SearchEngine implements Runnable,Callable<ArrayList<String>> {
    
 
 //	byte[] bytes=segmentation(getText(pageUrl.toString())).getBytes();
-   byte[] bytes=getText(pageUrl.toString()).getBytes();
+ // byte[] bytes=getText(pageUrl.toString()).getBytes();
+   
+   byte[] bytes=buf.getBytes();
    
  //  File file=new File("web"+countUrl+".txt");
+	
+
+	
+	
    OutputStream os;
    
    try {
-	   String save_path="SearchResult";
-	   File file=new File(save_path);
+//	   String save_path="SearchResult";
+	   File file=new File(data_path);
 	   if(!file.exists())
 		   file.mkdirs();
 	   
-	   os = new FileOutputStream(save_path+"/web"+countUrl+".txt");
+	
+	   
+	   os = new FileOutputStream(data_path+"/"+countUrl+".html");
+	   UrlList.add(pageUrl.toString());
 	   os.write(bytes);
 	   os.close();
 	   } catch (FileNotFoundException e) {
@@ -312,7 +321,7 @@ public class SearchEngine implements Runnable,Callable<ArrayList<String>> {
  }
 
  // 搜索下载Web页面的内容，判断在该页面内有没有指定的搜索字符串
-
+       
  private boolean searchStringMatches(String pageContents,
    String searchString, boolean caseSensitive) {
   String searchContents = pageContents;
@@ -406,6 +415,9 @@ public class SearchEngine implements Runnable,Callable<ArrayList<String>> {
  //  System.out.println(url);
   }
   
+//  index(resultList);
+  
+  new Thread(new Index(data_path));
   
   return resultList;
  }

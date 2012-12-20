@@ -17,6 +17,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import org.apache.lucene.search.Hits;
+
 
 
 public class UserInterface extends JFrame{
@@ -34,8 +36,8 @@ public class UserInterface extends JFrame{
 	private JPanel p3=new JPanel();
 
 	private String url_input;
-	private Callable<ArrayList<String>> search;
-	private Callable<ArrayList<String>> thread_search;
+	private Callable<ArrayList<String>> crawl;
+	private Callable<Hits> search;
 	
 	private ArrayList<String> craw_result;
 	
@@ -65,12 +67,12 @@ public class UserInterface extends JFrame{
 				 
 				  ExecutorService threadPool = Executors.newSingleThreadExecutor(); 
 					
-				 search = new SearchEngine(url_input, 20);
+				 crawl = new Crawl(url_input, 20);
 				 
 			//	 thread_search = nexw Callable(search);
 				 
 				 
-				 Future<ArrayList<String>> future =(Future<ArrayList<String>>) threadPool.submit(search);
+				 Future<ArrayList<String>> future =(Future<ArrayList<String>>) threadPool.submit(crawl);
 				 
 				 threadPool.shutdown();
 				 
@@ -103,7 +105,7 @@ public class UserInterface extends JFrame{
 						
 					
 						
-							System.out.println(s);
+						//	System.out.println(s);
 
 							text_output.append(s+"\n");
 						 
@@ -121,6 +123,26 @@ public class UserInterface extends JFrame{
 		button_search.addActionListener(new ActionListener(){
 			
 			public void actionPerformed(ActionEvent e){
+				
+				ExecutorService threadPool = Executors.newSingleThreadExecutor(); 
+				
+				search =new Search(text_keyword.getText());
+				
+				Future<Hits> future =(Future<Hits>) threadPool.submit(search);
+				 
+				 threadPool.shutdown();
+				 
+				 /*
+				 
+				 for(String s:future.get()){
+						
+						
+						
+						System.out.println(s);
+
+						text_output.append(s+"\n");
+					 
+				 }*/
 				
 			}
 		});

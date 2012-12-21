@@ -8,8 +8,12 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+
+import javax.swing.text.Highlighter;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -37,6 +41,19 @@ public class Index implements Runnable{
 	
 	public void run(){
 		
+	
+		
+		try {
+			try {
+				index(file_path);
+			} catch (ParserException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		
 	}
@@ -59,25 +76,72 @@ public class Index implements Runnable{
 		 
 	
 	
-	public void index(String filesPath) throws IOException  
+	public void index(String filesPath) throws IOException, ParserException  
 	 {  
 		  File dataDir=new File(filesPath);		
 	      IK_CAnalyzer ik=new IK_CAnalyzer();
           IndexWriter indexWriter = new IndexWriter(index_path,ik,true);   
           
+         
+          
           Document doc;
 
           for(File file:dataDir.listFiles()){
         	  
-        	  int i=Integer.parseInt(file.getName());
+        	//  int i=Integer.parseInt(file.getName());
 	
 	         doc = new Document();  
-	         doc.add(new Field("url",Crawl.UrlList.get(i),Field.Store.YES,Field.Index.TOKENIZED));  
+	         
+	         String filename=file.getName();
+	         doc.add(new Field("filename",filename,Field.Store.YES,Field.Index.UN_TOKENIZED));
+	         
+	         String uri=file.getPath();
+	         doc.add(new Field("uri",uri,Field.Store.YES,Field.Index.NO));
+	         System.out.println(uri);
+	         
+	         Date dt=new Date(file.lastModified());
+	         SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd E");
+	         String cdate=sdf.format(dt);
+	         doc.add(new Field("cdate",cdate,Field.Store.YES,Field.Index.NO));
+	         
+	         double si=file.length();
+	         String size="";
+	         
+	         if(si>1024){
+	        	 size=String.valueOf(Math.floor(si/1024))+"K";
+	         }
+	         else{
+	        	 size=String.valueOf(si)+"Bytes";
+	        	 
+	         }
+	         
+	         
+	         doc.add(new Field("size",size,Field.Store.YES,Field.Index.NO));
+	         
+	         String text=getText(uri);
+	         doc.add(new Field("text",text,Field.Store.COMPRESS,Field.Index.TOKENIZED,Field.TermVector.WITH_POSITIONS_OFFSETS));
+	         
+	         String digest="";
+	         if(text.length()>200){
+	        	 digest=text.substring(0,200);
+	         }
+	         else{
+	        	 digest=text;
+	         }
+	         
+	         doc.add(new Field("digest",digest,Field.Store.YES,Field.Index.UN_TOKENIZED));
+	         
+	       //  System.out.println(getText(uri));
+	         
+	      //   String 
+	         
+	    //     doc.add(new Field("url",Crawler.UrlList.get(i),Field.Store.YES,Field.Index.TOKENIZED));  
 	     
 	         indexWriter.addDocument(doc);  
 	         
           }
 	   
+          System.out.println("索引完成");
 	       
 	        
 	       indexWriter.optimize();  

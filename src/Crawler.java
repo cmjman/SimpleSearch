@@ -34,7 +34,7 @@ import org.mira.lucene.analysis.*;
 
 
 
-public class Crawl implements Runnable,Callable<ArrayList<String>> {
+public class Crawler implements Callable<ArrayList<String>> {
 
  private HashMap<String, ArrayList<String>> disallowListCache = new HashMap<String, ArrayList<String>>();
  ArrayList<String> errorList = new ArrayList<String>();// 错误信息
@@ -49,11 +49,11 @@ public class Crawl implements Runnable,Callable<ArrayList<String>> {
 // private String index_path="/data/index";
  private String data_path="/data/data";
  
- public static List<String> UrlList;
+// public static List<String> UrlList;
  
  
 
- public Crawl ( String startUrl, int maxUrl) {
+ public Crawler ( String startUrl, int maxUrl) {
   this.startUrl = startUrl;
   this.maxUrl = maxUrl;
   //this.searchString = searchString;
@@ -71,12 +71,7 @@ public class Crawl implements Runnable,Callable<ArrayList<String>> {
   return result;
  }
 
- public void run() {// 启动搜索线程
-  crawl(startUrl, maxUrl, limitHost, caseSensitive);
-  
-  
- 
- }
+
 
  // 检测URL格式
  private URL verifyUrl(String url) {
@@ -175,6 +170,8 @@ public class Crawl implements Runnable,Callable<ArrayList<String>> {
 
  private String downloadPage(URL pageUrl) {
   try {
+	  
+	//  UrlList.add(pageUrl.toString());
    // Open connection to URL for reading.
    BufferedReader reader = new BufferedReader(new InputStreamReader(
      pageUrl.openStream(),"UTF-8"));
@@ -211,7 +208,6 @@ public class Crawl implements Runnable,Callable<ArrayList<String>> {
 	
 	   
 	   os = new FileOutputStream(data_path+"/"+countUrl+".html");
-	   UrlList.add(pageUrl.toString());
 	   os.write(bytes);
 	   os.close();
 	   } catch (FileNotFoundException e) {
@@ -416,8 +412,9 @@ public class Crawl implements Runnable,Callable<ArrayList<String>> {
   }
   
 //  index(resultList);
+	
   
-  new Thread(new Index(data_path));
+  new Thread(new Index(data_path)).start();
   
   return resultList;
  }

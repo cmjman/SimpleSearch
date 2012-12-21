@@ -2,6 +2,7 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -17,6 +18,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import org.apache.lucene.document.Document;
 import org.apache.lucene.search.Hits;
 
 
@@ -67,7 +69,7 @@ public class UserInterface extends JFrame{
 				 
 				  ExecutorService threadPool = Executors.newSingleThreadExecutor(); 
 					
-				 crawl = new Crawl(url_input, 20);
+				 crawl = new Crawler(url_input, 20);
 				 
 			//	 thread_search = nexw Callable(search);
 				 
@@ -132,17 +134,47 @@ public class UserInterface extends JFrame{
 				 
 				 threadPool.shutdown();
 				 
-				 /*
+				 Hits h;
+				try {
+					h = future.get();
+				
 				 
-				 for(String s:future.get()){
+				 int num=h.length();
+				 
+				 
+				 for(int i=0;i<num;i++){
 						
+					
+					try {
+						 Document doc=null;
 						
+						 doc = h.doc(i);
+					
+					 if(doc == null )
+						 continue;
 						
-						System.out.println(s);
-
-						text_output.append(s+"\n");
-					 
-				 }*/
+					 String filename=doc.getField("filename").stringValue();
+					 String uri=doc.getField("uri").stringValue();
+					 String digest=doc.getField("digest").stringValue();
+					 String text=doc.getField("text").stringValue();
+					
+					
+					 	text_output.append("uri"+uri+"\n");
+						text_output.append("filename:"+filename+"\n");
+						text_output.append("digest:"+digest+"\n");
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				 }
+				 
+				} catch (InterruptedException e2) {
+					// TODO Auto-generated catch block
+					e2.printStackTrace();
+				} catch (ExecutionException e2) {
+					// TODO Auto-generated catch block
+					e2.printStackTrace();
+				}
 				
 			}
 		});

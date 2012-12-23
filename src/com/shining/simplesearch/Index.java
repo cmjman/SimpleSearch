@@ -1,3 +1,4 @@
+package com.shining.simplesearch;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,7 +29,7 @@ import org.htmlparser.util.ParserException;
 
 public class Index implements Runnable{
 	
-	private String data_path="/data/data";
+
 	
 	private String index_path="/data/index";
 	
@@ -44,14 +45,16 @@ public class Index implements Runnable{
 	
 		
 		try {
-			try {
-				index(file_path);
-			} catch (ParserException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			
+			index(file_path);
+		}
+		catch (ParserException e) {
+			
+			e.printStackTrace();
+			
+		}
+		 catch (IOException e) {
+			
 			e.printStackTrace();
 		}
 		
@@ -88,7 +91,6 @@ public class Index implements Runnable{
 
           for(File file:dataDir.listFiles()){
         	  
-        	//  int i=Integer.parseInt(file.getName());
 	
 	         doc = new Document();  
 	         
@@ -97,7 +99,7 @@ public class Index implements Runnable{
 	         
 	         String uri=file.getPath();
 	         doc.add(new Field("uri",uri,Field.Store.YES,Field.Index.NO));
-	         System.out.println(uri);
+	
 	         
 	         Date dt=new Date(file.lastModified());
 	         SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd E");
@@ -131,17 +133,13 @@ public class Index implements Runnable{
 	         
 	         doc.add(new Field("digest",digest,Field.Store.YES,Field.Index.UN_TOKENIZED));
 	         
-	       //  System.out.println(getText(uri));
-	         
-	      //   String 
-	         
-	    //     doc.add(new Field("url",Crawler.UrlList.get(i),Field.Store.YES,Field.Index.TOKENIZED));  
+	 
 	     
 	         indexWriter.addDocument(doc);  
 	         
           }
 	   
-          System.out.println("索引完成");
+
 	       
 	        
 	       indexWriter.optimize();  

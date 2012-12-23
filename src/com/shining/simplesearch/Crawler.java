@@ -1,12 +1,16 @@
+package com.shining.simplesearch;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.StringReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,28 +46,22 @@ public class Crawler implements Callable<ArrayList<String>> {
  String startUrl;// 开始搜索的起点
  int maxUrl;// 最大处理的url数
  static int countUrl=1;
-// String searchString;// 要搜索的字符串(英文)
+
  boolean caseSensitive = false;// 是否区分大小写
  boolean limitHost = false;// 是否在限制的主机内搜索
  
-// private String index_path="/data/index";
  private String data_path="/data/data";
- 
-// public static List<String> UrlList;
- 
- 
 
  public Crawler ( String startUrl, int maxUrl) {
   this.startUrl = startUrl;
   this.maxUrl = maxUrl;
-  //this.searchString = searchString;
  }
  
  public ArrayList<String> call() throws Exception {
 	 
 	 ArrayList<String> temp= crawl(startUrl, maxUrl, limitHost, caseSensitive);
 	 
-	 System.out.println(temp);
+	// System.out.println(temp);
 	return temp;
  }
 
@@ -139,44 +137,29 @@ public class Crawler implements Callable<ArrayList<String>> {
   return true;
  }
  
- 
- 
- 
- public String segmentation(String text) throws IOException {
-   
-     String segText=null;
-     
-	 StringReader sr=new StringReader(text);
-	
-	 //调用 IK Analyzer进行分词
-	 IK_CAnalyzer i=new IK_CAnalyzer();
-	 
-	 TokenStream ts=i.tokenStream(" ",sr);
-	 
-	 Token t=null;
-	 while((t=ts.next())!=null)
-	 {
-		 segText=segText+t.termText()+" ";
-		
-	 }
-	 //返回解析后的分词信息
-     return segText;
-  
- 
- 
- }  
- 
- 
 
  private String downloadPage(URL pageUrl) {
   try {
 	  
-	//  UrlList.add(pageUrl.toString());
-   // Open connection to URL for reading.
+	        
+	      HttpURLConnection connection = (HttpURLConnection) pageUrl.openConnection();
+	        connection.connect();
+	       InputStream inputStream = connection.getInputStream();
+	        byte bytes[] = new byte[1024*100]; 
+	        int index = 0;
+	        int count = inputStream.read(bytes, index, 1024*100);
+	        while (count != -1) {
+	          index += count;
+	          count = inputStream.read(bytes, index, 1);
+	        }
+
+	  
+
+	        
    BufferedReader reader = new BufferedReader(new InputStreamReader(
      pageUrl.openStream(),"UTF-8"));
    
-   // Read page into buffer.
+
    String line;
    StringBuffer pageBuffer = new StringBuffer();
    while ((line = reader.readLine()) != null) {
@@ -185,22 +168,11 @@ public class Crawler implements Callable<ArrayList<String>> {
    }
    
    String buf=pageBuffer.toString();
-   
-
-//	byte[] bytes=segmentation(getText(pageUrl.toString())).getBytes();
- // byte[] bytes=getText(pageUrl.toString()).getBytes();
-   
-   byte[] bytes=buf.getBytes();
-   
- //  File file=new File("web"+countUrl+".txt");
-	
-
-	
-	
+  
    OutputStream os;
    
    try {
-//	   String save_path="SearchResult";
+
 	   File file=new File(data_path);
 	   if(!file.exists())
 		   file.mkdirs();
@@ -209,6 +181,7 @@ public class Crawler implements Callable<ArrayList<String>> {
 	   
 	   os = new FileOutputStream(data_path+"/"+countUrl+".html");
 	   os.write(bytes);
+	  
 	   os.close();
 	   } catch (FileNotFoundException e) {
 	   e.printStackTrace();
@@ -229,7 +202,7 @@ public class Crawler implements Callable<ArrayList<String>> {
 
 
 
-// 从URL中去掉"www"
+
  private String removeWwwFromUrl(String url) {
   int index = url.indexOf("://www.");
   if (index != -1) {
@@ -239,10 +212,10 @@ public class Crawler implements Callable<ArrayList<String>> {
   return (url);
  }
 
- // 解析页面并找出链接
+
  private ArrayList<String> retrieveLinks(URL pageUrl, String pageContents,
    HashSet crawledList, boolean limitHost) {
-  // 用正则表达式编译链接的匹配模式。
+
   Pattern p = Pattern.compile("<a\\s+href\\s*=\\s*\"?(.*?)[\"|>]",
     Pattern.CASE_INSENSITIVE);
   Matcher m = p.matcher(pageContents);
@@ -318,30 +291,7 @@ public class Crawler implements Callable<ArrayList<String>> {
 
  // 搜索下载Web页面的内容，判断在该页面内有没有指定的搜索字符串
        
- private boolean searchStringMatches(String pageContents,
-   String searchString, boolean caseSensitive) {
-  String searchContents = pageContents;
-  if (!caseSensitive) {// 如果不区分大小写
-   searchContents = pageContents.toLowerCase();
-  }
-
-  Pattern p = Pattern.compile("[\\s]+");
-  String[] terms = p.split(searchString);
-  for (int i = 0; i < terms.length; i++) {
-   if (caseSensitive) {
-    if (searchContents.indexOf(terms[i]) == -1) {
-     return false;
-    }
-   } else {
-    if (searchContents.indexOf(terms[i].toLowerCase()) == -1) {
-     return false;
-    }
-   }
-  }
-
-  return true;
- }
-
+ 
  // 执行实际的搜索操作
  public ArrayList<String> crawl(String startUrl, int maxUrls,
     boolean limithost, boolean caseSensitive) {
@@ -408,69 +358,17 @@ public class Crawler implements Callable<ArrayList<String>> {
    
     
    }
- //  System.out.println(url);
+
   }
   
-//  index(resultList);
 	
   
   new Thread(new Index(data_path)).start();
   
+  
   return resultList;
  }
  
-/*
-
-
- // 主函数
- public static void main(String[] args) { 
-	 
-	 new Thread(new Runnable() { 
-		 public void run() { 
-		 while(true) { 
-			 
-			 
-			 Scanner in =new Scanner(System.in);
-			 System.out.println("Please input the url you want to search...");
-			 String inputURL=in.next();
-
-			 if(!inputURL.contains("http")){
-				 inputURL="http://"+inputURL+"/";
-			 }
-			  
-			 System.out.println("Please input the word you want to search...");
-			 String inputWORD=in.next();
-			  
-			Spider crawler =new Spider("http://www.hdu.edu.cn/",20,"杭州");
-			 SearchEngine crawler = new SearchEngine(inputURL, 20,inputWORD);
-			 Thread search = new Thread(crawler);
-			  
-			 System.out.println("Start searching...");
-			 System.out.println("result:");
-			 search.start();
-			 
-			 
-			
-			 try {
-				 
-			  search.join();
-			  
-		
-			  
-			  Thread.sleep(3000);
-			  
-			
-			  
-			 } catch (InterruptedException e) {
-			  e.printStackTrace();
-			 }catch (Exception e){
-			 	e.printStackTrace();
-			 }
-		 	}
-		 } 
-		 }).start(); 
- 	}
- 	*/
 }
 
 

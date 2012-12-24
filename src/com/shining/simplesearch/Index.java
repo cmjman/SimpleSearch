@@ -65,15 +65,11 @@ public class Index implements Runnable{
 	 public String getText(String url)throws ParserException{  
 	     StringBean sb = new StringBean();  
 	       
-	     //设置不需要得到页面所包含的链接信息  
 	     sb.setLinks(false);  
-	     //设置将不间断空格由正规空格所替代  
 	     sb.setReplaceNonBreakingSpaces(true);  
-	     //设置将一序列空格由一个单一空格所代替  
 	     sb.setCollapse(true);  
-	     //传入要解析的URL  
 	     sb.setURL(url);  
-	     //返回解析后的网页纯文本信息  
+	  
 	     return sb.getStrings();  
 	 }  
 		 
@@ -85,14 +81,11 @@ public class Index implements Runnable{
 	      IK_CAnalyzer ik=new IK_CAnalyzer();
           IndexWriter indexWriter = new IndexWriter(index_path,ik,true);   
           
-         
-          
           Document doc;
 
           for(File file:dataDir.listFiles()){
         	  
-	
-	         doc = new Document();  
+        	 doc = new Document();  
 	         
 	         String filename=file.getName();
 	         doc.add(new Field("filename",filename,Field.Store.YES,Field.Index.UN_TOKENIZED));
@@ -100,7 +93,6 @@ public class Index implements Runnable{
 	         String uri=file.getPath();
 	         doc.add(new Field("uri",uri,Field.Store.YES,Field.Index.NO));
 	
-	         
 	         Date dt=new Date(file.lastModified());
 	         SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd E");
 	         String cdate=sdf.format(dt);
@@ -117,7 +109,6 @@ public class Index implements Runnable{
 	        	 
 	         }
 	         
-	         
 	         doc.add(new Field("size",size,Field.Store.YES,Field.Index.NO));
 	         
 	         String text=getText(uri);
@@ -133,19 +124,11 @@ public class Index implements Runnable{
 	         
 	         doc.add(new Field("digest",digest,Field.Store.YES,Field.Index.UN_TOKENIZED));
 	         
-	 
-	     
 	         indexWriter.addDocument(doc);  
 	         
           }
 	   
-
-	       
-	        
-	       indexWriter.optimize();  
-	       indexWriter.close();  
-	     
-	 }
-
-
+          indexWriter.optimize();  
+	      indexWriter.close();  
+	  }
 }

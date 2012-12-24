@@ -36,8 +36,6 @@ import org.htmlparser.util.ParserException;
 import org.mira.lucene.analysis.*;
 
 
-
-
 public class Crawler implements Callable<ArrayList<String>> {
 
  private HashMap<String, ArrayList<String>> disallowListCache = new HashMap<String, ArrayList<String>>();
@@ -59,40 +57,38 @@ public class Crawler implements Callable<ArrayList<String>> {
  
  public ArrayList<String> call() throws Exception {
 	 
-	 ArrayList<String> temp= crawl(startUrl, maxUrl, limitHost, caseSensitive);
-	 
-	// System.out.println(temp);
-	return temp;
+	return crawl(startUrl, maxUrl, limitHost, caseSensitive);
  }
 
  public ArrayList<String> getResult() {
-  return result;
+  
+	 return result;
  }
 
 
-
- // 检测URL格式
- private URL verifyUrl(String url) {
-  // 只处理HTTP URLs.
+private URL verifyUrl(String url) {
+  
   if (!url.toLowerCase().startsWith("http://"))
-   return null;
+   
+	  return null;
+  
   URL verifiedUrl = null;
   try {
-   verifiedUrl = new URL(url);
+   
+	  verifiedUrl = new URL(url);
   } catch (Exception e) {
-   return null;
+	  
+	 return null;
   }
-  return verifiedUrl;
+  	return verifiedUrl;
  }
 
- // 检测robot是否允许访问给出的URL.
- private boolean isRobotAllowed(URL urlToCheck) {
-  String host = urlToCheck.getHost().toLowerCase();// 获取给出URL的主机
 
-  // 获取主机不允许搜索的URL缓存
+ private boolean isRobotAllowed(URL urlToCheck) {
+  String host = urlToCheck.getHost().toLowerCase();
+
   ArrayList<String> disallowList = disallowListCache.get(host);
 
-  // 如果还没有缓存,下载并缓存。
   if (disallowList == null) {
    disallowList = new ArrayList<String>();
    try {
@@ -100,18 +96,16 @@ public class Crawler implements Callable<ArrayList<String>> {
     BufferedReader reader = new BufferedReader(
       new InputStreamReader(robotsFileUrl.openStream()));
 
-    // 读robot文件，创建不允许访问的路径列表。
     String line;
     while ((line = reader.readLine()) != null) {
-     if (line.indexOf("Disallow:") == 0) {// 是否包含"Disallow:"
+     if (line.indexOf("Disallow:") == 0) {
       String disallowPath = line.substring("Disallow:"
-        .length());// 获取不允许访问路径
-
-      // 检查是否有注释。
+        .length());
+      
       int commentIndex = disallowPath.indexOf("#");
       if (commentIndex != -1) {
        disallowPath = disallowPath.substring(0,
-         commentIndex);// 去掉注释
+         commentIndex);
       }
 
       disallowPath = disallowPath.trim();
@@ -119,10 +113,9 @@ public class Crawler implements Callable<ArrayList<String>> {
      }
     }
 
-    // 缓存此主机不允许访问的路径。
     disallowListCache.put(host, disallowList);
    } catch (Exception e) {
-    return true; // web站点根目录下没有robots.txt文件,返回真
+    return true; 
    }
   }
 
@@ -141,37 +134,40 @@ public class Crawler implements Callable<ArrayList<String>> {
  private String downloadPage(URL pageUrl) {
   try {
 	  
+	    HttpURLConnection connection = (HttpURLConnection) pageUrl.openConnection();
+	    
+	    connection.connect();
+	       
+	    InputStream inputStream = connection.getInputStream();
 	        
-	      HttpURLConnection connection = (HttpURLConnection) pageUrl.openConnection();
-	        connection.connect();
-	       InputStream inputStream = connection.getInputStream();
-	        byte bytes[] = new byte[1024*100]; 
-	        int index = 0;
-	        int count = inputStream.read(bytes, index, 1024*100);
-	        while (count != -1) {
-	          index += count;
-	          count = inputStream.read(bytes, index, 1);
-	        }
-
-	  
-
+	    byte bytes[] = new byte[1024*100]; 
 	        
-   BufferedReader reader = new BufferedReader(new InputStreamReader(
+	    int index = 0;
+	        
+	    int count = inputStream.read(bytes, index, 1024*100);
+	        
+	    while (count != -1) {
+	          
+	    	index += count;
+	          
+	    	count = inputStream.read(bytes, index, 1);
+	    }
+
+	 BufferedReader reader = new BufferedReader(new InputStreamReader(
      pageUrl.openStream(),"UTF-8"));
    
 
-   String line;
-   StringBuffer pageBuffer = new StringBuffer();
-   while ((line = reader.readLine()) != null) {
-    pageBuffer.append(line);
-  
-   }
+	 String line;
+	 StringBuffer pageBuffer = new StringBuffer();
+	 while ((line = reader.readLine()) != null) {
+		 pageBuffer.append(line);
+	 }
    
-   String buf=pageBuffer.toString();
+	 String buf=pageBuffer.toString();
   
-   OutputStream os;
+	 OutputStream os;
    
-   try {
+	 try {
 
 	   File file=new File(data_path);
 	   if(!file.exists())
@@ -189,20 +185,15 @@ public class Crawler implements Callable<ArrayList<String>> {
 	   e.printStackTrace();
 	   }
 	   
-   countUrl++;
+	 countUrl++;
    
-   return buf;
+	 return buf;
   } catch (Exception e) {
+	  e.printStackTrace();
   }
-  return null;
+  	return null;
  }
  
-
-
-
-
-
-
  private String removeWwwFromUrl(String url) {
   int index = url.indexOf("://www.");
   if (index != -1) {
@@ -228,7 +219,6 @@ public class Crawler implements Callable<ArrayList<String>> {
     continue;
    }
 
-   // 跳过链到本页面内链接。
    if (link.charAt(0) == '#') {
     continue;
    }
@@ -242,12 +232,12 @@ public class Crawler implements Callable<ArrayList<String>> {
    }
 
    if (link.indexOf("://") == -1) {
-    if (link.charAt(0) == '/') {// 处理绝对地
+    if (link.charAt(0) == '/') {
      link = "http://" + pageUrl.getHost() + ":"
        + pageUrl.getPort() + link;
     } else {
      String file = pageUrl.getFile();
-     if (file.indexOf('/') == -1) {// 处理相对地址
+     if (file.indexOf('/') == -1) {
       link = "http://" + pageUrl.getHost() + ":"
         + pageUrl.getPort() + "/" + link;
      } else {
@@ -271,14 +261,13 @@ public class Crawler implements Callable<ArrayList<String>> {
     continue;
    }
 
-   /* 如果限定主机，排除那些不合条件的URL */
    if (limitHost
      && !pageUrl.getHost().toLowerCase().equals(
        verifiedLink.getHost().toLowerCase())) {
     continue;
    }
 
-   // 跳过那些已经处理的链接.
+  
    if (crawledList.contains(link)) {
     continue;
    }
@@ -289,10 +278,6 @@ public class Crawler implements Callable<ArrayList<String>> {
   return (linkList);
  }
 
- // 搜索下载Web页面的内容，判断在该页面内有没有指定的搜索字符串
-       
- 
- // 执行实际的搜索操作
  public ArrayList<String> crawl(String startUrl, int maxUrls,
     boolean limithost, boolean caseSensitive) {
 
@@ -304,16 +289,12 @@ public class Crawler implements Callable<ArrayList<String>> {
    errorList.add("Invalid Max URLs value.");
    System.out.println("Invalid Max URLs value.");
   }
-  
-
-
 
   if (errorList.size() > 0) {
    System.out.println("err!!!");
    return errorList;
   }
 
-  // 从开始URL中移出www
   startUrl = removeWwwFromUrl(startUrl);
 
   toCrawlList.add(startUrl);
@@ -325,21 +306,20 @@ public class Crawler implements Callable<ArrayList<String>> {
     }
    }
 
-   // Get URL at bottom of the list.
+
    String url = toCrawlList.iterator().next();
 
-   // Remove URL from the to crawl list.
+
    toCrawlList.remove(url);
 
-   // Convert string url to URL object.
+  
    URL verifiedUrl = verifyUrl(url);
 
-   // Skip URL if robots are not allowed to access it.
+
    if (!isRobotAllowed(verifiedUrl)) {
     continue;
    }
 
-   // 增加已处理的URL到crawledList
    crawledList.add(url);
    resultList.add(url);
    String pageContents = downloadPage(verifiedUrl);
@@ -348,27 +328,19 @@ public class Crawler implements Callable<ArrayList<String>> {
   
 
    if (pageContents != null && pageContents.length() > 0) {
-    // 从页面中获取有效的链接
+  
 	   ArrayList<String> links = retrieveLinks(verifiedUrl,
       pageContents, crawledList, limitHost);
 
     toCrawlList.addAll(links);
-    
-
-   
-    
-   }
+    }
 
   }
   
-	
+	new Thread(new Index(data_path)).start();
   
-  new Thread(new Index(data_path)).start();
-  
-  
-  return resultList;
+	return resultList;
  }
- 
 }
 
 

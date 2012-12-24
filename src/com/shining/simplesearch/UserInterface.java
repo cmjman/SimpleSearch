@@ -1,5 +1,6 @@
 package com.shining.simplesearch;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
@@ -43,6 +44,7 @@ public class UserInterface extends JFrame{
 	private static final long serialVersionUID = 1L;
 	private JButton button_crawl=new JButton("抓取");
 	private JButton button_search=new JButton("搜索");
+	private JButton button_clear=new JButton("清空");
 	private JLabel label_crawl=new JLabel("请在此输入网址：");
 	private JLabel label_search=new JLabel("请在此输入需要搜索的关键词：");
 	private JTextField text_url=new JTextField("www.hdu.edu.cn",10);
@@ -74,20 +76,11 @@ public class UserInterface extends JFrame{
 		this.setLayout(new BorderLayout());
 		this.setResizable(false);
 		
-		
-		
 		text_output_west.setEditable(false);
-
-		
 		editorPane.setEditable(false); 
 		editorPane.setContentType("text/html");
-
-		
-
 		editorPane.setPreferredSize(new Dimension(480,480));
 	
-		
-		
 		panel_north.setLayout(new FlowLayout());
 		panel_north.add(label_crawl);
 		panel_north.add(text_url);
@@ -97,18 +90,13 @@ public class UserInterface extends JFrame{
 		panel_west.add(new JScrollPane(text_output_west));
 		
 		panel_center.setLayout(new FlowLayout());
-	//	panel_center.add(new JScrollPane(text_output_center));
-		
-		
-		
-		
 		panel_center.add(new JScrollPane(editorPane));
-		
 		
 		panel_south.setLayout(new FlowLayout());
 		panel_south.add(label_search);
 		panel_south.add(text_keyword);
 		panel_south.add(button_search);
+		panel_south.add(button_clear);
 		
 		this.add(panel_north,BorderLayout.NORTH);
 		this.add(panel_west,BorderLayout.WEST);
@@ -147,8 +135,6 @@ public class UserInterface extends JFrame{
 		});
 		
 		
-		
-
 		button_crawl.addActionListener(new ActionListener(){
 			
 			public void actionPerformed(ActionEvent e){
@@ -161,7 +147,6 @@ public class UserInterface extends JFrame{
 					url_input="http://"+url_input+"/";
 				
 			
-				 
 				ExecutorService threadPool = Executors.newSingleThreadExecutor(); 
 				
 				crawl = new Crawler(url_input, 20);
@@ -173,8 +158,6 @@ public class UserInterface extends JFrame{
 				
 				list=new ArrayList<String>();
 			
-				
-				 
 				try {
 					for(String s:future.get()){
 						
@@ -199,24 +182,16 @@ public class UserInterface extends JFrame{
 				
 				ExecutorService threadPool = Executors.newSingleThreadExecutor(); 
 				
-				
 				keyword=text_keyword.getText();
 				search =new Search(keyword);
 				
-			
-				
-	
 				Future<String> future =(Future<String>) threadPool.submit(search);
 				 
 				 threadPool.shutdown();
 				 
-	
-				 
 				 String searchResult;
 				try {
 					searchResult = future.get();
-					
-			
 					
 					editorPane.setText(searchResult);
 					
@@ -228,24 +203,22 @@ public class UserInterface extends JFrame{
 					e1.printStackTrace();
 				}
 				 
-			
-					
-					
-
-		
-				 
-				 	
-				
-				
 				
 			}
 		});
 		
-		
+		button_clear.addActionListener(new ActionListener(){
+			
+			public void actionPerformed(ActionEvent e){
+				
+				editorPane.setText("");
+				editorPane.setBackground(Color.WHITE);
+			
+			}
+		});
 	}
 	
 	public static void main(String[] args) throws IOException{
 		new UserInterface();
 	}
-	
 }
